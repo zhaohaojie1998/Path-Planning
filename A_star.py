@@ -7,12 +7,11 @@ Created on Thu Mar 30 16:45:58 2023
 
 # A*算法 
 # http://www.360doc.com/content/21/0811/13/40892371_990562118.shtml
-from typing import Union, NamedTuple
+from typing import Union
 import cv2
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-from itertools import product
 from functools import lru_cache
 from dataclasses import dataclass, field
     
