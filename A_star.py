@@ -158,7 +158,7 @@ class NodeList:
     
     # def __iter__(self):
     #     """实现__getitem__自动实现__iter__了"""
-    #     return zip(self.pos_list, self.cost_list)
+    #     return zip(self.pos_list, self.cost_list, self.parent_list)
 
     
     def append(self, pos: Position, cost: Number, parent: Position):
