@@ -209,6 +209,7 @@ class AStar:
         run : bool
             是否在算法实例化之后运行算法, 否则需要手动调用
         """
+        self.__tic_list = [] # 计时器
 
         # 网格化地图
         self.map_ = np.array(map_img) # H * W
@@ -236,6 +237,7 @@ class AStar:
 
     def reset(self, move_step=3, move_direction=8):
         """重置算法"""
+        self.__reset_flag = False
         self.move_step = move_step                # 移动步长(搜索后期会减小)
         self.move_direction = move_direction      # 移动方向 8 个
         self.close_list = NodeList()              # 存储已经走过的位置及其G值 
@@ -255,7 +257,7 @@ class AStar:
 
     def _move(self):
         """移动点"""
-        @lru_cache(maxsize=5) # 避免参数相同时重复计算
+        @lru_cache(maxsize=3) # 避免参数相同时重复计算
         def _move(move_step:int, move_direction:int):
             move = (
                 ([0, move_step], move_step), # 上
@@ -273,7 +275,6 @@ class AStar:
 
     def _update_open_list(self, curr_pos: Position, G_curr: Number, *args):
         """open_list添加可行点"""
-       
         # open_list添加可行结点
         for (add, cost) in self._move():
             # 更新可行位置
@@ -304,13 +305,14 @@ class AStar:
 
     def __call__(self):
         """A*路径搜索"""
-        _t0 = time.time()
+        assert not self.__reset_flag, "call之前需要reset"
 
         # 初始化列表
         self.close_list.append(self.start_pos, 0, self.start_pos) # 初始化 CloseList
         self._update_open_list(self.start_pos, 0) # 初始化 OpenList
 
         # 正向搜索节点(CloseList里的数据无序)
+        self._tic
         while self.open_list:
             # 寻找 OpenList 代价最小的点, 并在OpenList中删除
             pos, F, parent = self.open_list.getmin()
@@ -326,8 +328,10 @@ class AStar:
 
             # 更新 OpenList
             self._update_open_list(*self.close_list[-1])
-
+        self._toc
+    
         # 节点组合成路径
+        self._tic
         path = self.close_list[-1] # P0, G, P1
         start = self.close_list[0] # P0, G, P1
         while path != start:
@@ -337,17 +341,23 @@ class AStar:
                     self.path_list.append(path_curr[0]) # 将当前节点加入路径
                     self.close_list.pop(i)              # 弹出当前节点, 避免重复遍历
         print("路径节点整合完成\n")
-
-        _t1 = time.time()
-        print(f"历时: {_t1-_t0}s\n")
-
+        self._toc
+       
         # 绘图输出
         self.show()
-        
 
+        # 需要重置
+        self.__reset_flag = True
+        
 
     def show(self):
         """绘图输出"""
+        # 没路径先搜索路径
+        if not self.path_list:
+            self.__call__() 
+            return
+
+        # 绘图输出
         x, y = [], []
         for p in self.path_list:
             x.append(p.x)
@@ -371,6 +381,21 @@ class AStar:
         ax.legend().set_draggable(True)
 
         plt.show()
+
+
+    @property
+    def _tic(self):
+        """matlab计时器tic"""
+        self.__tic_list.append(time.time())
+
+
+    @property
+    def _toc(self):
+        """matlab计时器toc"""
+        if self.__tic_list:
+            t = time.time() - self.__tic_list.pop()
+            print(f"历时: {t}s\n")
+
 
 
 
