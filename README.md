@@ -1,8 +1,20 @@
-# A*算法路径规划
+# 路径规划算法
+
+## 算法:
+
+| 算法               | algo                               | file        | 类别 |
+| ------------------ | ---------------------------------- | ----------- | ---- |
+| A星算法            | A*                                 | A_star.py   | 搜索 |
+| 贪婪最佳优先算法   | Greedy Best First Search, GBFS     | GBFS.py     | 搜索 |
+| 迪杰斯特拉算法     | Dijkstra（暂时有BUG）              | Dijkstra.py | 搜索 |
+| 深度优先搜索算法   | Depth First Search, DFS            |             | 搜索 |
+| 广度优先搜索算法   | Breadth First Search, BFS          |             | 搜索 |
+| 概率路图算法       | Probabilistic Road Map, PRM        |             | 采样 |
+| 快速随机扩展树算法 | Rapidly-exploring Random Tree, RRT |             | 采样 |
 
 ## 使用方法:
 
-在草纸上随便画点障碍物，拍照上传替换鲲鲲图片image.jpg，运行A_star.py
+在草纸上随便画点障碍物，拍照上传替换鲲鲲图片image.jpg，在A_star.py等脚本中设置起点终点等参数，运行即可
 
 ## 效果:
 
