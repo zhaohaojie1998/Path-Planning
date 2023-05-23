@@ -172,6 +172,7 @@ class NodeList:
     
     def getmin(self):
         """获取cost最小的节点, 并在NodeList中删除"""
+        # 用优先队列方便取cost最小的元素, 但不好判断位置坐标pos是否在队列中
         idx = self.cost_list.index(min(self.cost_list))
         pos, cost, parent = self.pop(idx)
         return pos, cost, parent
@@ -308,12 +309,15 @@ class AStar:
         assert not self.__reset_flag, "call之前需要reset"
 
         # 初始化列表
+        self.open_list.append(self.start_pos, np.inf, self.start_pos) # 初始化 OpenList
         self.close_list.append(self.start_pos, 0, self.start_pos) # 初始化 CloseList
-        self._update_open_list(self.start_pos, 0) # 初始化 OpenList
 
         # 正向搜索节点(CloseList里的数据无序)
         self._tic
         while self.open_list:
+            # 更新 OpenList
+            self._update_open_list(*self.close_list[-1])
+
             # 寻找 OpenList 代价最小的点, 并在OpenList中删除
             pos, F, parent = self.open_list.getmin()
             G = F - (pos - self.end_pos) # G = F - H
@@ -323,11 +327,8 @@ class AStar:
 
             # 结束迭代
             if pos == self.end_pos:
-                print("路径节点搜索完成\n")
                 break
-
-            # 更新 OpenList
-            self._update_open_list(*self.close_list[-1])
+        print("路径节点搜索完成\n")
         self._toc
     
         # 节点组合成路径
