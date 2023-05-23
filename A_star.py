@@ -253,27 +253,29 @@ class AStar:
         return self.map_[pos.y, pos.x] == 0
     
 
-    @lru_cache(maxsize=5) # 避免move_step相同时重复计算
-    def _move(self, move_step: int):
+    def _move(self):
         """移动点"""
-        move = (
-            ([0, move_step], move_step), # 上
-            ([0, -move_step], move_step), # 下
-            ([-move_step, 0], move_step), # 左
-            ([move_step, 0], move_step), # 右
-            ([move_step, move_step], move_step*1.414), # 右上
-            ([move_step, -move_step], move_step*1.414), # 右下
-            ([-move_step, move_step], move_step*1.414), # 左上
-            ([-move_step, -move_step], move_step*1.414), # 左下
-            )
-        return move[0:self.move_direction] # 坐标增量+代价
+        @lru_cache(maxsize=5) # 避免参数相同时重复计算
+        def _move(move_step:int, move_direction:int):
+            move = (
+                ([0, move_step], move_step), # 上
+                ([0, -move_step], move_step), # 下
+                ([-move_step, 0], move_step), # 左
+                ([move_step, 0], move_step), # 右
+                ([move_step, move_step], move_step*1.414), # 右上
+                ([move_step, -move_step], move_step*1.414), # 右下
+                ([-move_step, move_step], move_step*1.414), # 左上
+                ([-move_step, -move_step], move_step*1.414), # 左下
+                )
+            return move[0:move_direction] # 坐标增量+代价
+        return _move(self.move_step, self.move_direction)
 
 
     def _update_open_list(self, curr_pos: Position, G_curr: Number, *args):
         """open_list添加可行点"""
        
         # open_list添加可行结点
-        for (add, cost) in self._move(self.move_step):
+        for (add, cost) in self._move():
             # 更新可行位置
             next_pos = curr_pos + add
 
@@ -329,10 +331,11 @@ class AStar:
         path = self.close_list[-1] # P0, G, P1
         start = self.close_list[0] # P0, G, P1
         while path != start:
-            for path_curr in self.close_list:
-                if path_curr[0] == path[2]: # 如果当前节点是目标节点的父节点
-                    path = path_curr # 更新目标节点
+            for i, path_curr in enumerate(self.close_list):
+                if path_curr[0] == path[2]:             # 如果当前节点是目标节点的父节点
+                    path = path_curr                    # 更新目标节点
                     self.path_list.append(path_curr[0]) # 将当前节点加入路径
+                    self.close_list.pop(i)              # 弹出当前节点, 避免重复遍历
         print("路径节点整合完成\n")
 
         _t1 = time.time()
