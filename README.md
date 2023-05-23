@@ -6,7 +6,7 @@
 | ------------------ | ---------------------------------- | ----------- | ---- |
 | A星算法            | A*                                 | A_star.py   | 搜索 |
 | 贪婪最佳优先算法   | Greedy Best First Search, GBFS     | GBFS.py     | 搜索 |
-| 迪杰斯特拉算法     | Dijkstra（暂时有BUG）              | Dijkstra.py | 搜索 |
+| 迪杰斯特拉算法     | Dijkstra（搜鸡哥地图得1k秒）       | Dijkstra.py | 搜索 |
 | 深度优先搜索算法   | Depth First Search, DFS            |             | 搜索 |
 | 广度优先搜索算法   | Breadth First Search, BFS          |             | 搜索 |
 | 概率路图算法       | Probabilistic Road Map, PRM        |             | 采样 |
