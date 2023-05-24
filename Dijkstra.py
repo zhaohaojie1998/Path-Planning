@@ -26,10 +26,10 @@ THRESH = 172             # 图片二值化阈值, 大于阈值的部分被置为
 
 
 # 障碍地图参数设置     #  NOTE cv2 按 HWC 存储图片
-HIGHT = 350          # 地图高度
-WIDTH = 600          # 地图宽度
-START = (290, 270)   # 起点坐标 y轴向下为正
-END = (298, 150)     # 终点坐标 y轴向下为正
+HIGHT = 70          # 地图高度
+WIDTH = 120          # 地图宽度
+START = (58, 54)   # 起点坐标 y轴向下为正
+END = (59, 26)     # 终点坐标 y轴向下为正
 
 
 # 障碍地图提取
@@ -153,7 +153,7 @@ class Dijkstra:
         start_pos = START,
         end_pos = END,
         map_img = map_img,
-        move_step = 3,
+        move_step = 1,
         move_direction = 8,
         run = True,
     ):
@@ -187,10 +187,14 @@ class Dijkstra:
         self.end_pos = Position(*end_pos)     # 结束位置
        
         # Error Check
-        if not self._in_map(self.start_pos) or not self._in_map(self.end_pos):
-            raise ValueError(f"x坐标范围0~{self.width}, y坐标范围0~{self.height}")
         self.start_pos.check()
         self.end_pos.check()
+        if not self._in_map(self.start_pos) or not self._in_map(self.end_pos):
+            raise ValueError(f"x坐标范围0~{self.width-1}, y坐标范围0~{self.height-1}")
+        if self._is_collided(self.start_pos):
+            raise ValueError(f"起点x坐标或y坐标在障碍物上")
+        if self._is_collided(self.end_pos):
+            raise ValueError(f"终点x坐标或y坐标在障碍物上")
        
         # 算法初始化
         self.reset(move_step, move_direction)
@@ -217,7 +221,7 @@ class Dijkstra:
 
     def _is_collided(self, pos: Position):
         """点是否和障碍物碰撞"""
-        return self.map_[pos.y, pos.x] == 0
+        return self.map_[pos.y, pos.x] < 1
     
 
     def _move(self):
@@ -238,9 +242,8 @@ class Dijkstra:
         return _move(self.move_step, self.move_direction)
 
 
-    def _update_open_list(self, curr_pos: Position, G_curr: Number, *args):
+    def _update_open_list(self, curr_pos: Position, G_curr: Number):
         """open_list添加可行点"""
-        # open_list添加可行结点
         for (add, cost) in self._move():
             # 更新可行位置
             next_pos = curr_pos + add
@@ -271,17 +274,16 @@ class Dijkstra:
         assert not self.__reset_flag, "call之前需要reset"
 
         # 初始化列表
-        self.open_list.append(self.start_pos, np.inf, self.start_pos) # 初始化 OpenList
-        self.close_list.append(self.start_pos, 0, self.start_pos) # 初始化 CloseList
-
+        self.open_list.append(self.start_pos, 0, self.start_pos) # 初始化 OpenList
+    
         # 正向搜索节点(CloseList里的数据无序)
         self._tic
         while self.open_list:
-            # 更新 OpenList
-            self._update_open_list(*self.close_list[-1])
-
             # 寻找 OpenList 代价最小的点, 并在OpenList中删除
             pos, G, parent = self.open_list.getmin()
+
+            # 更新 OpenList
+            self._update_open_list(pos, G)
         
             # 更新 CloseList
             self.close_list.append(pos, G, parent)
