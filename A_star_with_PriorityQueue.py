@@ -265,13 +265,10 @@ class AStar:
             # 吐出 F 最小的节点
             curr_node = self.open_list.get() # OpenList里的 cost 为 F = G + H
             curr_node.cost -= (curr_node - self.end_pos) # CloseList里的 cost 为 G = F - H
-            
             # 更新 OpenList
             self._update_open_list(curr_node)
-
             # 更新 CloseList
             self.close_list.append(curr_node)
-
             # 结束迭代
             if curr_node == self.end_pos:
                 break
