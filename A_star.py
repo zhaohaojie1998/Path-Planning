@@ -163,19 +163,32 @@ class NodeList:
     #     return zip(self.pos_list, self.cost_list, self.parent_list)
     
     def append(self, pos: Position, cost: Number, parent: Position):
+        """CloseList 添加节点"""
         self.pos_list.append(pos)
         self.cost_list.append(cost)
         self.parent_list.append(parent)
 
     def pop(self, idx):
+        """CloseList 弹出节点"""
         return self.pos_list.pop(idx), self.cost_list.pop(idx), self.parent_list.pop(idx)
     
-    def getmin(self):
-        """获取cost最小的节点, 并在NodeList中删除"""
+    def get(self):
+        """OpenList 获取cost最小的节点, 并在NodeList中删除"""
         # 用优先队列方便取cost最小的元素, 但不好判断位置坐标pos是否在队列中
         idx = self.cost_list.index(min(self.cost_list))
         pos, cost, parent = self.pop(idx)
         return pos, cost, parent
+    
+    def put(self, pos: Position, cost: Number, parent):
+        """OpenList 更新节点"""
+        if pos in self.pos_list:
+            idx = self.pos_list.index(pos)
+            if cost < self.cost_list[idx]:     # 新节点代价更小
+                self.cost_list[idx] = cost     # 更新代价
+                self.parent_list[idx] = parent # 更新父节点
+        else:
+            self.append(pos, cost, parent)
+
     
 
 
@@ -290,8 +303,8 @@ class AStar:
             # 新位置是否碰到障碍物
             if self._is_collided(next_pos):
                 continue
-            # 新位置是否已经存在
-            if next_pos in self.open_list or next_pos in self.close_list:
+            # 新位置是否在 CloseList 中
+            if next_pos in self.close_list:
                 continue # in是值比较, 只看(x,y)是否在列表, 不看id是否在列表
 
             # 计算所添加的结点的代价
@@ -300,7 +313,7 @@ class AStar:
             F = G + H                   # 节点的总代价
 
             # open-list添加结点
-            self.open_list.append(next_pos, F, curr_pos)
+            self.open_list.put(next_pos, F, curr_pos)
             
             # 当剩余距离小时, 走慢一点
             if H < 20:
@@ -319,7 +332,7 @@ class AStar:
         self._tic
         while self.open_list:
             # 寻找 OpenList 代价最小的点, 并在OpenList中删除
-            pos, F, parent = self.open_list.getmin()
+            pos, F, parent = self.open_list.get()
             G = F - (pos - self.end_pos) # G = F - H
 
             # 更新 OpenList
@@ -344,6 +357,7 @@ class AStar:
                     path = path_curr                    # 更新目标节点
                     self.path_list.append(path_curr[0]) # 将当前节点加入路径
                     self.close_list.pop(i)              # 弹出当前节点, 避免重复遍历
+                    break
         print("路径节点整合完成\n")
         self._toc
        
