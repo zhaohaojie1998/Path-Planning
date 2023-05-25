@@ -272,6 +272,7 @@ class Dijkstra:
     def __call__(self):
         """Dijkstra路径搜索"""
         assert not self.__reset_flag, "call之前需要reset"
+        print("搜索中\n")
 
         # 初始化列表
         self.open_list.append(self.start_pos, 0, self.start_pos) # 初始化 OpenList
