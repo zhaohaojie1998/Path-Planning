@@ -61,13 +61,12 @@ class Node:
     0.索引节点坐标:
         x, y = Node
         x, y = Node[0], Node[1]
-        x, y = Node.node[0], Node.node[1]
     1.求节点和另一个节点/坐标之间的曼哈顿距离:
         distance = Node - (x, y)
         distance = Node - Node_1
     2.移动节点:
         NewNode = Node + (dx, dy)
-    3.判断两个节点坐标是否相同 (不比较父节点坐标):
+    3.判断两个节点坐标是否相同 (不比较父节点指针):
         Node == (x, y)
         Node == Node_1
     4.判断坐标/节点是否在Node组成的列表中:
@@ -87,36 +86,36 @@ class Node:
     """
 
     # 节点
-    node: tuple[int, int]               # 当前节点的 x, y 坐标
+    pos: tuple[int, int]                # 当前节点的 x, y 坐标
 
     # 节点其它信息
     cost: Number = 0                    # 父节点到当前节点的代价信息
-    parent_node: tuple[int, int] = None # 父节点 x, y 坐标信息
+    parent_ptr: "Node" = None                   # 父节点指针
 
     # 像list/tuple一样索引x,y坐标
-    def __getitem__(self, idx): # Node[idx] = Node.node[idx]
-        return self.node[idx]
+    def __getitem__(self, idx): # Node[idx] = Node.pos[idx]
+        return self.pos[idx]
 
     # 计算两个节点的曼哈顿距离
     def __sub__(self, other) -> int: # distance = self - other
         return abs(self[0] - other[0]) + abs(self[1] - other[1])
         
     # 移动节点坐标 x,y, 生成新节点
-    def __add__(self, other) -> "Node": # new_node = self + other
+    def __add__(self, other: Union[list, tuple]) -> "Node": # new_node = self + other
         cost = self.cost + math.sqrt(other[0]**2 + other[1]**2) # 欧式距离
         #cost = self.cost + (self - other) # 曼哈顿距离
-        return Node(node=(self[0]+other[0], self[1]+other[1]), parent_node=self[:], cost=cost)
+        return Node((self[0]+other[0], self[1]+other[1]), cost, self)
     
-    # 两个节点坐标是否相等 (避免重复添加节点, 所以不比较父节点)
+    # 两个节点坐标是否相等
     def __eq__(self, other): # Node in queue 调用 __eq__ 方法
         if isinstance(other, (Node, tuple, list)):
             return other[0] == self[0] and other[1] == self[1] 
         return False
     
-    # 两个节点代价比较 (自动实现 >和 >= 了)
+    # 两个节点代价比较
     def __lt__(self, other): # 优先queue中弹出代价最小的数据 调用 __lt__ 和 __le__ 方法
         return self.cost < other.cost
-    def __le__(self, other):
+    def __le__(self, other): # NOTE 实现<后>=自动实现, 实现<=后>自动实现
         return self.cost <= other.cost
     
     # 当前节点是否在网格地图中
@@ -174,7 +173,7 @@ class AStar:
         self.start_pos = start_pos # 初始位置
         self.end_pos = end_pos     # 结束位置
 
-        self.start_node = Node(start_pos, 0, start_pos) # 初始节点
+        self.start_node = Node(start_pos) # 初始节点
         
         # Error Check
         self.end_node = Node(end_pos)
@@ -235,7 +234,7 @@ class AStar:
             if next_node.is_collided(self.map_):
                 continue
             # 新位置是否已经存在
-            if next_node in self.close_list and next_node in self.open_list.queue: # Queue不好更新open_list的数据, 直接跳过
+            if next_node in self.close_list or next_node in self.open_list.queue: # Queue不好更新open_list的数据, 直接跳过
                 continue # in是值比较, 只看(x,y)是否在列表, 不看id是否在列表
 
             # 计算所添加的结点的代价
@@ -285,10 +284,10 @@ class AStar:
         start_ = self.close_list[0] # P0, G, P1
         while next_ != start_:
             for i, curr_ in enumerate(self.close_list):
-                if curr_.node == next_.parent_node:     # 如果当前节点是目标节点的父节点
-                    next_ = curr_                       # 更新目标节点
-                    self.path_list.append(curr_.node)   # 将当前节点坐标加入路径
-                    self.close_list.pop(i)              # 弹出当前节点, 避免重复遍历
+                if curr_ == next_.parent_ptr:        # 如果当前节点是目标节点的父节点
+                    next_ = curr_                    # 更新目标节点
+                    self.path_list.append(curr_.pos) # 将当前节点坐标加入路径
+                    self.close_list.pop(i)           # 弹出当前节点, 避免重复遍历
                     break
         print("路径节点整合完成\n")
         self._toc
