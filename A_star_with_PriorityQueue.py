@@ -255,6 +255,7 @@ class AStar:
     def __call__(self):
         """A*路径搜索"""
         assert not self.__reset_flag, "call之前需要reset"
+        print("搜索中\n")
 
         # 初始化优先队列
         self.open_list.put(self.start_node) # 初始化 OpenList
