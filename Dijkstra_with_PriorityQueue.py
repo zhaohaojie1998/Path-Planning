@@ -234,7 +234,7 @@ class Dijkstra:
             if next_node.is_collided(self.map_):
                 continue
             # 新位置是否已经存在
-            if next_node in self.open_list.queue or next_node in self.close_list:
+            if next_node in self.close_list and next_node in self.open_list.queue: # Queue不好更新open_list的数据, 直接跳过
                 continue # in是值比较, 只看(x,y)是否在列表, 不看id是否在列表
 
             # 计算所添加的结点的代价
@@ -284,6 +284,7 @@ class Dijkstra:
                     next_ = curr_                       # 更新目标节点
                     self.path_list.append(curr_.node)   # 将当前节点坐标加入路径
                     self.close_list.pop(i)              # 弹出当前节点, 避免重复遍历
+                    break
         print("路径节点整合完成\n")
         self._toc
        
