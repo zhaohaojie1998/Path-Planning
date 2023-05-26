@@ -12,6 +12,7 @@ Created on Thu Mar 30 16:45:58 2023
 from typing import Union
 import cv2
 import time
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from functools import lru_cache
@@ -26,10 +27,10 @@ THRESH = 172             # 图片二值化阈值, 大于阈值的部分被置为
 
 
 # 障碍地图参数设置     #  NOTE cv2 按 HWC 存储图片
-HIGHT = 70          # 地图高度
+HIGHT = 70           # 地图高度
 WIDTH = 120          # 地图宽度
-START = (58, 54)   # 起点坐标 y轴向下为正
-END = (59, 26)     # 终点坐标 y轴向下为正
+START = (58, 54)     # 起点坐标 y轴向下为正
+END = (59, 26)       # 终点坐标 y轴向下为正
 
 
 # 障碍地图提取
@@ -57,102 +58,99 @@ cv2.imwrite(MAP_PATH, map_img)                                         # 存储�
 Number = Union[int, float]
 
 
-# 位置坐标数据类
-@dataclass # 默认就有 __eq__ 方法
-class Position:
-    """位置Position对象\n
-    两个Position对象相减得到两个Position之间的曼哈顿距离\n
-    Position对象加一个坐标得到一个新的Position对象, 即对Position的坐标进行更新\n
+@dataclass(eq=False)
+class Node:
+    """节点"""
 
-    """
     x: int
     y: int
+    cost: Number = 0
+    parent: "Node" = None
 
-    # 计算两个坐标之间的曼哈顿距离
     def __sub__(self, other) -> int:
-        # int = self - other
-        if isinstance(other, Position):
+        """计算节点与坐标的曼哈顿距离"""
+        if isinstance(other, Node):
             return abs(self.x - other.x) + abs(self.y - other.y)
         elif isinstance(other, (tuple, list)):
             return abs(self.x - other[0]) + abs(self.y - other[1])
-        raise ValueError("other必须为坐标或Position")
-    def __rsub__(self, other):
-        # int = other - self
-        return self.__sub__(other)
-      
-    # 更新坐标 x、y
-    def __add__(self, other):
-        # new_pos = self + other
-        if isinstance(other, Position):
-            return Position(self.x + other.x, self.y + other.y)
-        elif isinstance(other, (tuple, list)):
-            return Position(self.x + other[0], self.y + other[1])
-        raise ValueError("other必须为坐标或Position")
+        raise ValueError("other必须为坐标或Node")
     
-    # 数据类型检查
-    def check(self):
-        if not isinstance(self.x, int) or not isinstance(self.y, int):
-            raise ValueError("x,y坐标必须为int类型")
+    def __add__(self, other: Union[tuple, list]) -> "Node":
+        """生成新节点"""
+        x = self.x + other[0]
+        y = self.y + other[1]
+        cost = self.cost + math.sqrt(other[0]**2 + other[1]**2) # 欧式距离
+        return Node(x, y, cost, self)
+        
+    def __eq__(self, other):
+        """坐标x,y比较 -> node in close_list"""
+        if isinstance(other, Node):
+            return self.x == other.x and self.y == other.y
+        elif isinstance(other, (tuple, list)):
+            return self.x == other[0] and self.y == other[1]
+        return False
+    
+    def __le__(self, other: "Node"):
+        """代价<=比较 -> min(open_list)"""
+        return self.cost <= other.cost
+    
+    def __lt__(self, other: "Node"):
+        """代价<比较 -> min(open_list)"""
+        return self.cost < other.cost
 
 
 
-
-# 节点数据类
 @dataclass
 class NodeList:
-    """节点存储列表: OpenList / CloseList"""
-    pos_list: list[Position] = field(default_factory=list) # 节点位置坐标存储列表
-    cost_list: list[Number] = field(default_factory=list)  # CloseList的G代价, OpenList的F代价
-    parent_list: list[Position] = field(default_factory=list) # 父节点坐标
-    #NOTE: 可变对象不能作为默认参数, 需要field
+    """节点存储队列: OpenList / CloseList"""
+
+    queue: list[Node] = field(default_factory=list)
 
     def __bool__(self):
         """判断: while NodeList:"""
-        return bool(self.pos_list)
+        return bool(self.queue)
     
     def __contains__(self, item):
         """包含: pos in NodeList"""
-        return item in self.pos_list 
+        return item in self.queue
         #NOTE: in是值比较, 只看value是否在列表, 不看id是否在列表
 
     def __len__(self):
         """长度: len(NodeList)"""
-        return len(self.pos_list)
+        return len(self.queue)
     
     def __getitem__(self, idx):
-        """索引: NodeList[i]""" #NOTE: idx = 0:2:1 等时 自动转换成 idx=slice(0,2,1)
-        return self.pos_list[idx], self.cost_list[idx], self.parent_list[idx]
+        """索引: NodeList[i]"""
+        return self.queue[idx]
     
-    # def __iter__(self):
-    #     """实现__getitem__自动实现__iter__了"""
-    #     return zip(self.pos_list, self.cost_list, self.parent_list)
-    
-    def append(self, pos: Position, cost: Number, parent: Position):
+    # List操作
+    def append(self, node: Node):
         """CloseList 添加节点"""
-        self.pos_list.append(pos)
-        self.cost_list.append(cost)
-        self.parent_list.append(parent)
+        self.queue.append(node)
 
     def pop(self, idx):
         """CloseList 弹出节点"""
-        return self.pos_list.pop(idx), self.cost_list.pop(idx), self.parent_list.pop(idx)
+        return self.queue.pop(idx)
     
+    # PriorityQueue操作
     def get(self):
-        """OpenList 获取cost最小的节点, 并在NodeList中删除"""
-        # 用优先队列方便取cost最小的元素, 但不好判断位置坐标pos是否在队列中
-        idx = self.cost_list.index(min(self.cost_list))
-        pos, cost, parent = self.pop(idx)
-        return pos, cost, parent
-    
-    def put(self, pos: Position, cost: Number, parent):
-        """OpenList 更新节点"""
-        if pos in self.pos_list:
-            idx = self.pos_list.index(pos)
-            if cost < self.cost_list[idx]:     # 新节点代价更小
-                self.cost_list[idx] = cost     # 更新代价
-                self.parent_list[idx] = parent # 更新父节点
+        """OpenList 弹出代价最小节点"""
+        idx = self.queue.index(min(self.queue)) 
+        return self.queue.pop(idx) # 获取cost最小的节点, 并在NodeList中删除
+        
+    def put(self, node: Node):
+        """OpenList 加入/更新节点"""
+        if node in self.queue:
+            idx = self.queue.index(node)
+            if node.cost < self.queue[idx].cost:     # 新节点代价更小
+                self.queue[idx].cost = node.cost     # 更新代价
+                self.queue[idx].parent = node.parent # 更新父节点
         else:
-            self.append(pos, cost, parent)
+            self.queue.append(node)
+
+    def empty(self):
+        """OpenList 是否为空"""
+        return len(self.queue) == 0
     
 
 
@@ -196,17 +194,15 @@ class Dijkstra:
         self.high = self.map_.shape[0]
 
         # 起点终点
-        self.start_pos = Position(*start_pos) # 初始位置
-        self.end_pos = Position(*end_pos)     # 结束位置
+        self.start = Node(*start_pos) # 初始位置
+        self.end = Node(*end_pos)     # 结束位置
        
         # Error Check
-        self.start_pos.check()
-        self.end_pos.check()
-        if not self._in_map(self.start_pos) or not self._in_map(self.end_pos):
+        if not self._in_map(self.start) or not self._in_map(self.end):
             raise ValueError(f"x坐标范围0~{self.width-1}, y坐标范围0~{self.height-1}")
-        if self._is_collided(self.start_pos):
+        if self._is_collided(self.start):
             raise ValueError(f"起点x坐标或y坐标在障碍物上")
-        if self._is_collided(self.end_pos):
+        if self._is_collided(self.end):
             raise ValueError(f"终点x坐标或y坐标在障碍物上")
        
         # 算法初始化
@@ -227,14 +223,14 @@ class Dijkstra:
         self.path_list = []                       # 存储路径(CloseList里的数据无序)
 
 
-    def _in_map(self, pos: Position):
+    def _in_map(self, node: Node):
         """点是否在网格地图中"""
-        return (0 <= pos.x < self.width) and (0 <= pos.y < self.high) # 右边不能取等!!!
+        return (0 <= node.x < self.width) and (0 <= node.y < self.high) # 右边不能取等!!!
     
 
-    def _is_collided(self, pos: Position):
+    def _is_collided(self, node: Node):
         """点是否和障碍物碰撞"""
-        return self.map_[pos.y, pos.x] < 1
+        return self.map_[node.y, node.x] < 1
     
 
     def _move(self):
@@ -242,43 +238,40 @@ class Dijkstra:
         @lru_cache(maxsize=3) # 避免参数相同时重复计算
         def _move(move_step:int, move_direction:int):
             move = (
-                ([0, move_step], move_step), # 上
-                ([0, -move_step], move_step), # 下
-                ([-move_step, 0], move_step), # 左
-                ([move_step, 0], move_step), # 右
-                ([move_step, move_step], move_step*1.414), # 右上
-                ([move_step, -move_step], move_step*1.414), # 右下
-                ([-move_step, move_step], move_step*1.414), # 左上
-                ([-move_step, -move_step], move_step*1.414), # 左下
+                (0, move_step), # 上
+                (0, -move_step), # 下
+                (-move_step, 0), # 左
+                (move_step, 0), # 右
+                (move_step, move_step), # 右上
+                (move_step, -move_step), # 右下
+                (-move_step, move_step), # 左上
+                (-move_step, -move_step), # 左下
                 )
             return move[0:move_direction] # 坐标增量+代价
         return _move(self.move_step, self.move_direction)
 
 
-    def _update_open_list(self, curr_pos: Position, G_curr: Number):
+    def _update_open_list(self, curr: Node):
         """open_list添加可行点"""
-        for (add, cost) in self._move():
+        for add in self._move():
             # 更新可行位置
-            next_pos = curr_pos + add
+            next_ = curr + add
 
             # 新位置是否在地图外边
-            if not self._in_map(next_pos):
+            if not self._in_map(next_):
                 continue
             # 新位置是否碰到障碍物
-            if self._is_collided(next_pos):
+            if self._is_collided(next_):
                 continue
             # 新位置是否在 CloseList 中
-            if next_pos in self.close_list:
+            if next_ in self.close_list:
                 continue # in是值比较, 只看(x,y)是否在列表, 不看id是否在列表
 
-            # 计算所添加的结点的代价
-            G = G_curr + cost           # 已走的代价
-
             # open-list添加结点
-            self.open_list.put(next_pos, G, curr_pos)
+            self.open_list.put(next_)
             
             # 当剩余距离小时, 走慢一点
-            if next_pos - self.end_pos < 20:
+            if next_ - self.end < 20:
                 self.move_step = 1
 
 
@@ -288,36 +281,33 @@ class Dijkstra:
         print("搜索中\n")
 
         # 初始化列表
-        self.open_list.append(self.start_pos, 0, self.start_pos) # 初始化 OpenList
+        self.open_list.put(self.start) # 初始化 OpenList
     
         # 正向搜索节点(CloseList里的数据无序)
         self._tic
         while self.open_list:
             # 寻找 OpenList 代价最小的点, 并在OpenList中删除
-            pos, G, parent = self.open_list.get()
-
+            curr = self.open_list.get()
             # 更新 OpenList
-            self._update_open_list(pos, G)
-        
+            self._update_open_list(curr)
             # 更新 CloseList
-            self.close_list.append(pos, G, parent)
-
+            self.close_list.append(curr)
             # 结束迭代
-            if pos == self.end_pos:
+            if curr == self.end:
                 break
         print("路径节点搜索完成\n")
         self._toc
     
         # 节点组合成路径
         self._tic
-        path = self.close_list[-1] # P0, G, P1
-        start = self.close_list[0] # P0, G, P1
-        while path != start:
-            for i, path_curr in enumerate(self.close_list):
-                if path_curr[0] == path[2]:             # 如果当前节点是目标节点的父节点
-                    path = path_curr                    # 更新目标节点
-                    self.path_list.append(path_curr[0]) # 将当前节点加入路径
-                    self.close_list.pop(i)              # 弹出当前节点, 避免重复遍历
+        start = self.close_list[0]
+        next_ = self.close_list[-1]
+        while next_ != start:
+            for i, curr in enumerate(self.close_list):
+                if curr == next_.parent:             # 如果当前节点是目标节点的父节点
+                    next_ = curr                     # 更新目标节点
+                    self.path_list.append(curr)      # 将当前节点加入路径
+                    self.close_list.pop(i)           # 弹出当前节点, 避免重复遍历
                     break
         print("路径节点整合完成\n")
         self._toc
