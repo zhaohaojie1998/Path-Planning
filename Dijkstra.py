@@ -262,7 +262,7 @@ class Dijkstra:
     
         # 正向搜索节点(CloseList里的数据无序)
         tic()
-        while self.open_list:
+        while not self.open_list.empty():
             # 寻找 OpenList 代价最小的点, 并在OpenList中删除
             curr = self.open_list.get()
             # 更新 OpenList
