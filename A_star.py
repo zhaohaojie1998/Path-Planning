@@ -8,35 +8,26 @@ Created on Thu Mar 30 16:45:58 2023
 # A*算法 
 # http://www.360doc.com/content/21/0811/13/40892371_990562118.shtml
 from typing import Union
-import cv2
-import time
 import math
 import numpy as np
-import matplotlib.pyplot as plt
 from functools import lru_cache
-from collections import deque
 from dataclasses import dataclass, field
+from utils import tic, toc, GridMap
     
 
 # 地图读取
 IMAGE_PATH = 'image.jpg' # 原图路径
-MAP_PATH = 'map.png'     # cv加工后的地图存储路径
-
 THRESH = 172             # 图片二值化阈值, 大于阈值的部分被置为255, 小于部分被置为0
+HIGHT = 350              # 地图高度
+WIDTH = 600              # 地图宽度
 
+MAP = GridMap(IMAGE_PATH, THRESH, HIGHT, WIDTH) # 栅格地图对象
 
-# 障碍地图参数设置     #  NOTE cv2 按 HWC 存储图片
-HIGHT = 350          # 地图高度
-WIDTH = 600          # 地图宽度
+# 起点终点     
 START = (290, 270)   # 起点坐标 y轴向下为正
 END = (298, 150)     # 终点坐标 y轴向下为正
 
 
-# 障碍地图提取
-image = cv2.imread(IMAGE_PATH, cv2.IMREAD_GRAYSCALE)                   # 读取原图 H,W,C
-THRESH, map_img = cv2.threshold(image, THRESH, 255, cv2.THRESH_BINARY) # 地图二值化
-map_img = cv2.resize(map_img, (WIDTH, HIGHT))                          # 设置地图尺寸
-cv2.imwrite(MAP_PATH, map_img)                                         # 存储二值地图
 
 
 
@@ -85,6 +76,7 @@ cv2.imwrite(MAP_PATH, map_img)                                         # 存储�
 
 
 """ ---------------------------- A*算法 ---------------------------- """
+# F = G + H
 
 Number = Union[int, float]
 
@@ -160,7 +152,7 @@ class NodeList:
         """CloseList 添加节点"""
         self.queue.append(node)
 
-    def pop(self, idx):
+    def pop(self, idx = -1):
         """CloseList 弹出节点"""
         return self.queue.pop(idx)
     
@@ -196,10 +188,9 @@ class AStar:
         self,
         start_pos = START,
         end_pos = END,
-        map_img = map_img,
+        map_array = MAP.map_array,
         move_step = 3,
         move_direction = 8,
-        run = True,
     ):
         """A*算法
 
@@ -209,22 +200,19 @@ class AStar:
             起点坐标
         end_pos : tuple/list
             终点坐标
-        map_img : Mat
-            二值化地图, 0表示障碍物, 255表示空白
+        map_array : ndarray
+            二值化地图, 0表示障碍物, 255表示空白, H*W维
         move_step : int
             移动步数, 默认3
         move_direction : int (8 or 4)
             移动方向, 默认8个方向
-        run : bool
-            是否在算法实例化之后运行算法, 否则需要手动调用
         """
-        self.__tic_list = [] # 计时器
 
         # 网格化地图
-        self.map_ = np.array(map_img) # H * W
+        self.map_array = map_array # H * W
 
-        self.width = self.map_.shape[1]
-        self.high = self.map_.shape[0]
+        self.width = self.map_array.shape[1]
+        self.high = self.map_array.shape[0]
 
         # 起点终点
         self.start = Node(*start_pos) # 初始位置
@@ -241,10 +229,6 @@ class AStar:
         # 算法初始化
         self.reset(move_step, move_direction)
         
-        # 算法运行
-        if run:
-            self.__call__()
-
 
     def reset(self, move_step=3, move_direction=8):
         """重置算法"""
@@ -256,6 +240,11 @@ class AStar:
         self.path_list = []                       # 存储路径(CloseList里的数据无序)
 
 
+    def search(self):
+        """搜索路径"""
+        return self.__call__()
+
+
     def _in_map(self, node: Node):
         """点是否在网格地图中"""
         return (0 <= node.x < self.width) and (0 <= node.y < self.high) # 右边不能取等!!!
@@ -263,7 +252,7 @@ class AStar:
 
     def _is_collided(self, node: Node):
         """点是否和障碍物碰撞"""
-        return self.map_[node.y, node.x] == 0
+        return self.map_array[node.y, node.x] == 0
     
 
     def _move(self):
@@ -321,7 +310,7 @@ class AStar:
         self.open_list.put(self.start)
 
         # 正向搜索节点
-        self._tic
+        tic()
         while self.open_list:
             # 弹出 OpenList 代价 F 最小的点
             curr = self.open_list.get() # OpenList里是 F
@@ -333,12 +322,11 @@ class AStar:
             # 结束迭代
             if curr == self.end:
                 break
-            
         print("路径节点搜索完成\n")
-        self._toc
+        toc()
     
         # 节点组成路径
-        self._tic
+        tic()
         start = self.close_list[0]
         next_ = self.close_list[-1]
         while next_ != start:
@@ -349,55 +337,16 @@ class AStar:
                     self.close_list.pop(i)           # 弹出当前节点, 避免重复遍历
                     break
         print("路径节点整合完成\n")
-        self._toc
+        toc()
        
-        # 绘图输出
-        self.show()
-
         # 需要重置
         self.__reset_flag = True
+
+        return self.path_list
         
 
-    def show(self):
-        """绘图输出"""
-        # 没路径先搜索路径
-        if not self.path_list:
-            self.__call__() 
-            return
+ 
 
-        # 绘图输出
-        x, y = [], []
-        for p in self.path_list:
-            x.append(p.x)
-            y.append(p.y)
-       
-        fig, ax = plt.subplots()
-        map_ = cv2.imread(MAP_PATH)
-        map_ = cv2.resize(map_, (self.width, self.high)) 
-        #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # R G B
-        #img = img[:, :, ::-1] # R G B
-        map_ = map_[::-1] # 画出来的鸡哥是反的, 需要转过来
-        ax.imshow(map_, extent=[0, self.width, 0, self.high]) # extent[x_min, x_max, y_min, y_max]
-        ax.plot(x, y, c = 'r', label='path', linewidth=2)
-        ax.scatter(x[-1], y[-1], c='c', marker='o', label='start', s=40, linewidth=2)
-        ax.scatter(x[0], y[0], c='c', marker='x', label='end', s=40, linewidth=2)
-        ax.invert_yaxis() # 反转y轴
-        ax.legend().set_draggable(True)
-        plt.show()
-
-
-    @property
-    def _tic(self):
-        """matlab计时器tic"""
-        self.__tic_list.append(time.time())
-
-
-    @property
-    def _toc(self):
-        """matlab计时器toc"""
-        if self.__tic_list:
-            t = time.time() - self.__tic_list.pop()
-            print(f"历时: {t}s\n")
 
 
 
@@ -407,24 +356,5 @@ class AStar:
 
 # debug
 if __name__ == '__main__':
-    s = AStar()
-
-            
-
-
-            
-
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
+    p = AStar()()
+    MAP.show_path(p)
