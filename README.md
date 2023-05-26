@@ -2,19 +2,21 @@
 
 ## 算法:
 
-| 算法               | algo                               | file        | 类别 |
-| ------------------ | ---------------------------------- | ----------- | ---- |
-| A星算法            | A*                                 | A_star.py   | 搜索 |
-| 贪婪最佳优先算法   | Greedy Best First Search, GBFS     | GBFS.py     | 搜索 |
-| 迪杰斯特拉算法     | Dijkstra                           | Dijkstra.py | 搜索 |
-| 深度优先搜索算法   | Depth First Search, DFS            |             | 搜索 |
-| 广度优先搜索算法   | Breadth First Search, BFS          |             | 搜索 |
-| 概率路图算法       | Probabilistic Road Map, PRM        |             | 采样 |
-| 快速随机扩展树算法 | Rapidly-exploring Random Tree, RRT |             | 采样 |
+| 算法                 | algo                               | file        | 类别 |
+| -------------------- | ---------------------------------- | ----------- | ---- |
+| A星算法              | A star, A*                         | A_star.py   | 搜索 |
+| 贪婪最佳优先搜索算法 | Greedy Best First Search, GBFS     | GBFS.py     | 搜索 |
+| 迪杰斯特拉搜索算法   | Dijkstra Serach, Dijkstra          | Dijkstra.py | 搜索 |
+| 深度优先搜索算法     | Depth First Search, DFS            | DFS.py      | 搜索 |
+| 广度优先搜索算法     | Breadth First Search, BFS          | BFS.py      | 搜索 |
+| 概率路图算法         | Probabilistic Road Map, PRM        |             | 采样 |
+| 快速随机扩展树算法   | Rapidly-exploring Random Tree, RRT |             | 采样 |
 
 ## 使用方法:
 
-在草纸上随便画点障碍物，拍照上传替换鲲鲲图片image.jpg，在A_star.py等脚本中设置起点终点等参数，运行即可
+在草纸上随便画点障碍物，拍照上传替换鲲鲲图片 image.jpg，在 A_star.py 等脚本中设置起点终点等参数，运行即可.
+
+程序并没有设置复杂的继承/依赖关系，只需要如 utils.py + A_star.py + image.jpg 三个文件在同一目录就能运行.
 
 ## 效果:
 
