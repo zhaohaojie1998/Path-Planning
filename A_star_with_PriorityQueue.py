@@ -90,7 +90,7 @@ class Node:
 
     # 节点其它信息
     cost: Number = 0                    # 父节点到当前节点的代价信息
-    parent_ptr: "Node" = None                   # 父节点指针
+    parent_ptr: "Node" = None           # 父节点指针
 
     # 像list/tuple一样索引x,y坐标
     def __getitem__(self, idx): # Node[idx] = Node.pos[idx]
