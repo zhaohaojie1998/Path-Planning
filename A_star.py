@@ -10,11 +10,17 @@ Created on Thu Mar 30 16:45:58 2023
 from typing import Union
 import math
 import numpy as np
+from queue import PriorityQueue
 from functools import lru_cache
 from dataclasses import dataclass, field
 from utils import tic, toc, GridMap
-    
 
+USE_LIST = False
+"""
+# OpenList 采用 PriorityQueue 还是 List 结构
+# List可以实现更新OpenList中节点的parent和cost, 找到的路径可能更优, 但耗时更大
+"""
+    
 # 地图读取
 IMAGE_PATH = 'image.jpg' # 原图路径
 THRESH = 172             # 图片二值化阈值, 大于阈值的部分被置为255, 小于部分被置为0
@@ -246,6 +252,8 @@ class AStar:
         self.close_set = set()                    # 存储已经走过的位置及其G值 
         self.open_queue = NodeQueue()             # 存储当前位置周围可行的位置及其F值
         self.path_list = []                       # 存储路径(CloseList里的数据无序)
+        if not USE_LIST:
+            self.open_queue = PriorityQueue()
 
 
     def search(self):
@@ -295,6 +303,9 @@ class AStar:
                 continue
             # 新位置是否在 CloseList 中
             if next_ in self.close_set:
+                continue
+            # PriorityQueue存储结构无法更新节点信息, 若存在则跳过
+            if not USE_LIST and next_ in self.open_queue.queue:
                 continue
 
             # 把节点的 G 代价改成 F 代价
