@@ -311,7 +311,7 @@ class AStar:
 
         # 正向搜索节点
         tic()
-        while self.open_list:
+        while not self.open_list.empty():
             # 弹出 OpenList 代价 F 最小的点
             curr = self.open_list.get() # OpenList里是 F
             curr.cost -= (curr - self.end) # G = F - H
