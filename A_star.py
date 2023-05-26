@@ -121,49 +121,56 @@ class Node:
     def __lt__(self, other: "Node"):
         """代价<比较 -> min(open_list)"""
         return self.cost < other.cost
+    
+    def __hash__(self) -> int:
+        """使可变对象可hash, 能放入set中"""
+        return hash((self.x, self.y)) # tuple 可 hash
+        # data in set 时间复杂度为 O(1), 但 data必须可hash
+        # data in list 时间复杂度 O(n)
 
 
 
 @dataclass
-class NodeList:
-    """节点存储队列: OpenList / CloseList"""
+class NodeQueue:
+    """节点优先存储队列"""
 
     queue: list[Node] = field(default_factory=list)
 
+    # Queue容器增强
     def __bool__(self):
-        """判断: while NodeList:"""
+        """判断: while Queue:"""
         return bool(self.queue)
     
     def __contains__(self, item):
-        """包含: pos in NodeList"""
+        """包含: pos in Queue"""
         return item in self.queue
         #NOTE: in是值比较, 只看value是否在列表, 不看id是否在列表
 
     def __len__(self):
-        """长度: len(NodeList)"""
+        """长度: len(Queue)"""
         return len(self.queue)
     
     def __getitem__(self, idx):
-        """索引: NodeList[i]"""
+        """索引: Queue[i]"""
         return self.queue[idx]
     
     # List操作
     def append(self, node: Node):
-        """CloseList 添加节点"""
+        """List 添加节点"""
         self.queue.append(node)
 
     def pop(self, idx = -1):
-        """CloseList 弹出节点"""
+        """List 弹出节点"""
         return self.queue.pop(idx)
     
     # PriorityQueue操作
     def get(self):
-        """OpenList 弹出代价最小节点"""
+        """Queue 弹出代价最小节点"""
         idx = self.queue.index(min(self.queue)) 
         return self.queue.pop(idx) # 获取cost最小的节点, 并在NodeList中删除
         
     def put(self, node: Node):
-        """OpenList 加入/更新节点"""
+        """Queue 加入/更新节点"""
         if node in self.queue:
             idx = self.queue.index(node)
             if node.cost < self.queue[idx].cost:     # 新节点代价更小
@@ -171,9 +178,10 @@ class NodeList:
                 self.queue[idx].parent = node.parent # 更新父节点
         else:
             self.queue.append(node)
+            # NOTE 采用优先队列可能更快, 但无法更新已存储数据的代价和父节点
 
     def empty(self):
-        """OpenList 是否为空"""
+        """Queue 是否为空"""
         return len(self.queue) == 0
 
     
@@ -235,8 +243,8 @@ class AStar:
         self.__reset_flag = False
         self.move_step = move_step                # 移动步长(搜索后期会减小)
         self.move_direction = move_direction      # 移动方向 8 个
-        self.close_list = NodeList()              # 存储已经走过的位置及其G值 
-        self.open_list = NodeList()               # 存储当前位置周围可行的位置及其F值
+        self.close_set = set()                    # 存储已经走过的位置及其G值 
+        self.open_queue = NodeQueue()             # 存储当前位置周围可行的位置及其F值
         self.path_list = []                       # 存储路径(CloseList里的数据无序)
 
 
@@ -286,15 +294,15 @@ class AStar:
             if self._is_collided(next_):
                 continue
             # 新位置是否在 CloseList 中
-            if next_ in self.close_list:
+            if next_ in self.close_set:
                 continue
 
             # 把节点的 G 代价改成 F 代价
             H = next_ - self.end
             next_.cost += H
 
-            # open-list添加结点
-            self.open_list.put(next_)
+            # open-list添加/更新结点
+            self.open_queue.put(next_)
             
             # 当剩余距离小时, 走慢一点
             if H < 20:
@@ -307,18 +315,18 @@ class AStar:
         print("搜索中\n")
 
         # 初始化 OpenList
-        self.open_list.put(self.start)
+        self.open_queue.put(self.start)
 
         # 正向搜索节点
         tic()
-        while not self.open_list.empty():
+        while not self.open_queue.empty():
             # 弹出 OpenList 代价 F 最小的点
-            curr = self.open_list.get() # OpenList里是 F
+            curr = self.open_queue.get() # OpenList里是 F
             curr.cost -= (curr - self.end) # G = F - H
             # 更新 OpenList
             self._update_open_list(curr)
             # 更新 CloseList
-            self.close_list.append(curr)
+            self.close_set.add(curr)
             # 结束迭代
             if curr == self.end:
                 break
@@ -327,14 +335,12 @@ class AStar:
     
         # 节点组成路径
         tic()
-        start = self.close_list[0]
-        next_ = self.close_list[-1]
-        while next_ != start:
-            for i, curr in enumerate(self.close_list):
-                if curr == next_.parent:             # 如果当前节点是目标节点的父节点
-                    next_ = curr                     # 更新目标节点
-                    self.path_list.append(curr)      # 将当前节点加入路径
-                    self.close_list.pop(i)           # 弹出当前节点, 避免重复遍历
+        while curr != self.start: # curr开始为end
+            for last in self.close_set:
+                if curr.parent == last:             # 如果当前节点是上个节点的子节点
+                    self.path_list.append(curr)     # 将当前节点加入路径
+                    self.close_set.remove(curr)     # 弹出当前节点, 避免重复遍历
+                    curr = last                     # 更新当前节点
                     break
         print("路径节点整合完成\n")
         toc()
