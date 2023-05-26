@@ -15,7 +15,7 @@ from functools import lru_cache
 from dataclasses import dataclass, field
 from utils import tic, toc, GridMap
 
-USE_LIST = False
+USE_LIST = True
 """
 # OpenList 采用 PriorityQueue 还是 List 结构
 # List可以实现更新OpenList中节点的parent和cost, 找到的路径可能更优, 但耗时更大
