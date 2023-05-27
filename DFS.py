@@ -7,24 +7,23 @@ Created on Thu Mar 30 16:45:58 2023
 
 # 深度优先搜索(Depth First Search, DFS)算法 
 from typing import Union
-import math
-import numpy as np
 from functools import lru_cache
 from dataclasses import dataclass
-from utils import tic, toc, GridMap
+from common import tic, toc, GridMap
     
 
 # 地图读取
 IMAGE_PATH = 'image.jpg' # 原图路径
 THRESH = 172             # 图片二值化阈值, 大于阈值的部分被置为255, 小于部分被置为0
-HIGHT = 70               # 地图高度
-WIDTH = 120              # 地图宽度
+HIGHT = 350              # 地图高度
+WIDTH = 600              # 地图宽度
 
 MAP = GridMap(IMAGE_PATH, THRESH, HIGHT, WIDTH) # 栅格地图对象
 
 # 起点终点     
-START = (58, 54)     # 起点坐标 y轴向下为正
-END = (59, 26)       # 终点坐标 y轴向下为正
+START = (290, 270)   # 起点坐标 y轴向下为正
+END = (298, 150)     # 终点坐标 y轴向下为正
+
 
 
 
@@ -88,7 +87,7 @@ class DFS:
         start_pos = START,
         end_pos = END,
         map_array = MAP.map_array,
-        move_step = 3,
+        move_step = 5,
         move_direction = 8,
     ):
         """DFS算法
@@ -168,7 +167,7 @@ class DFS:
                 (-move_step, -move_step), # 左下
                 ]
             return move[0:move_direction] # 坐标增量
-        return _move(self.move_step, self.move_direction)
+        return _move(self.move_step, self.move_direction)[::-1] # 后入先出, 斜着搜索太慢, 把直的放后面
 
 
     def _update_open_list(self, curr: Node):
