@@ -7,12 +7,10 @@ Created on Thu Mar 30 16:45:58 2023
 
 # 广度优先搜索(Breadth First Search, BFS)算法 
 from typing import Union
-import math
-import numpy as np
 from functools import lru_cache
 from collections import deque
 from dataclasses import dataclass
-from utils import tic, toc, GridMap
+from common import tic, toc, GridMap
     
 
 # 地图读取
@@ -89,7 +87,7 @@ class BFS:
         start_pos = START,
         end_pos = END,
         map_array = MAP.map_array,
-        move_step = 1,
+        move_step = 3,
         move_direction = 8,
     ):
         """BFS算法
