@@ -9,18 +9,18 @@ Created on Thu Mar 30 16:45:58 2023
 # A*: F = G + H
 # Dijkstra: F = G
 # https://zhuanlan.zhihu.com/p/346666812
-from typing import Union
-import math
-import numpy as np
-from queue import PriorityQueue
 from functools import lru_cache
-from dataclasses import dataclass, field
-from utils import tic, toc, GridMap
+from common import *
 
-USE_LIST = False 
+Queue_Type = 2
 """
-# OpenList 采用 PriorityQueue 还是 List 结构
-# List可以实现更新OpenList中节点的parent和cost, 找到的路径可能更优, 但耗时是PriorityQueue的5~6倍
+# OpenList 采用的 PriorityQueue 的结构
+## 0 -> SetQueue
+## 1 -> ListQueue
+## 2 -> PriorityQueuePro
+List/Set可以实现更新OpenList中节点的parent和cost, 找到的路径更优\n
+PriorityQueuePro速度最快, 但无法更新信息, 路径较差\n
+List速度最慢, Set速度接近PriorityQueuePro甚至更快\n
 """
 
 # 地图读取
@@ -42,112 +42,14 @@ END = (298, 150)     # 终点坐标 y轴向下为正
 """ ---------------------------- Dijkstra算法 ---------------------------- """
 # F = G + 0
 
-Number = Union[int, float]
 
-
-@dataclass(eq=False)
-class Node:
-    """节点"""
-
-    x: int
-    y: int
-    cost: Number = 0
-    parent: "Node" = None
-
-    def __sub__(self, other) -> int:
-        """计算节点与坐标的曼哈顿距离"""
-        if isinstance(other, Node):
-            return abs(self.x - other.x) + abs(self.y - other.y)
-        elif isinstance(other, (tuple, list)):
-            return abs(self.x - other[0]) + abs(self.y - other[1])
-        raise ValueError("other必须为坐标或Node")
-    
-    def __add__(self, other: Union[tuple, list]) -> "Node":
-        """生成新节点"""
-        x = self.x + other[0]
-        y = self.y + other[1]
-        cost = self.cost + math.sqrt(other[0]**2 + other[1]**2) # 欧式距离
-        return Node(x, y, cost, self)
-        
-    def __eq__(self, other):
-        """坐标x,y比较 -> node in close_list"""
-        if isinstance(other, Node):
-            return self.x == other.x and self.y == other.y
-        elif isinstance(other, (tuple, list)):
-            return self.x == other[0] and self.y == other[1]
-        return False
-    
-    def __le__(self, other: "Node"):
-        """代价<=比较 -> min(open_list)"""
-        return self.cost <= other.cost
-    
-    def __lt__(self, other: "Node"):
-        """代价<比较 -> min(open_list)"""
-        return self.cost < other.cost
-    
-    def __hash__(self) -> int:
-        """使可变对象可hash, 能放入set中"""
-        return hash((self.x, self.y)) # tuple 可 hash
-        # data in set 时间复杂度为 O(1), 但 data必须可hash
-        # data in list 时间复杂度 O(n)
-
-
-
-@dataclass
-class NodeQueue:
-    """节点优先存储队列"""
-
-    queue: list[Node] = field(default_factory=list)
-
-    # Queue容器增强
-    def __bool__(self):
-        """判断: while Queue:"""
-        return bool(self.queue)
-    
-    def __contains__(self, item):
-        """包含: pos in Queue"""
-        return item in self.queue
-        #NOTE: in是值比较, 只看value是否在列表, 不看id是否在列表
-
-    def __len__(self):
-        """长度: len(Queue)"""
-        return len(self.queue)
-    
-    def __getitem__(self, idx):
-        """索引: Queue[i]"""
-        return self.queue[idx]
-    
-    # List操作
-    def append(self, node: Node):
-        """List 添加节点"""
-        self.queue.append(node)
-
-    def pop(self, idx = -1):
-        """List 弹出节点"""
-        return self.queue.pop(idx)
-    
-    # PriorityQueue操作
-    def get(self):
-        """Queue 弹出代价最小节点"""
-        idx = self.queue.index(min(self.queue)) 
-        return self.queue.pop(idx) # 获取cost最小的节点, 并在NodeList中删除
-        
-    def put(self, node: Node):
-        """Queue 加入/更新节点"""
-        if node in self.queue:
-            idx = self.queue.index(node)
-            if node.cost < self.queue[idx].cost:     # 新节点代价更小
-                self.queue[idx].cost = node.cost     # 更新代价
-                self.queue[idx].parent = node.parent # 更新父节点
-        else:
-            self.queue.append(node)
-            # NOTE 采用优先队列可能更快, 但无法更新已存储数据的代价和父节点
-
-    def empty(self):
-        """Queue 是否为空"""
-        return len(self.queue) == 0
-    
-
+# 设置OpenList使用的优先队列
+if Queue_Type == 0:
+    NodeQueue = SetQueue
+elif Queue_Type == 1:
+    NodeQueue = ListQueue
+else:
+    NodeQueue = PriorityQueuePro
 
 
 # 迪杰斯特拉算法
@@ -207,8 +109,6 @@ class Dijkstra:
         self.close_set = set()                    # 存储已经走过的位置及其G值 
         self.open_queue = NodeQueue()             # 存储当前位置周围可行的位置及其F值
         self.path_list = []                       # 存储路径(CloseList里的数据无序)
-        if not USE_LIST:
-            self.open_queue = PriorityQueue()
 
     
     def search(self):
@@ -258,9 +158,6 @@ class Dijkstra:
                 continue
             # 新位置是否在 CloseList 中
             if next_ in self.close_set:
-                continue
-            # PriorityQueue存储结构无法更新节点信息, 若存在则跳过
-            if not USE_LIST and next_ in self.open_queue.queue:
                 continue
 
             # open-list添加/更新结点
