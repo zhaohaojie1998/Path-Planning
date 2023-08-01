@@ -5,6 +5,7 @@
 | 算法                                                         | file        | 类别                | 性质      | OpenList数据结构 |
 | ------------------------------------------------------------ | ----------- | ------------------- | --------- | ---------------- |
 | A星算法<br />(A*)                                            | A_star.py   | 启发搜索<br />F=G+H | 最优+最速 | PriorityQueue    |
+| 混合A星算法<br />(Hybrid A*) | HybridA_star.py | 启发搜索<br />F=G+H | 考虑车辆运动学约束 | PriorityQueue |
 | 迪杰斯特拉搜索算法<br />(Dijkstra)                           | Dijkstra.py | 启发搜索<br />F=G   | 最优      | PriorityQueue    |
 | 贪婪最佳优先搜索算法<br />(Greedy Best First Search, GBFS)   | GBFS.py     | 启发搜索<br />F=H   | 最速      | PriorityQueue    |
 | 广度优先搜索算法<br />(Breadth First Search, BFS)            | BFS.py      | 遍历搜索            | 最优      | deque 先入先出   |
@@ -26,6 +27,10 @@
 ## 效果:
 
 **复杂障碍物地图下的路径规划结果（只能看一眼，不然会爆炸）**
+
+### 混合A*算法：（考虑车辆运动学约束）
+
+![](图片/hybrida.png)
 
 ### A*算法：（介于最优和快速之间）
 
