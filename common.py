@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 Number = Union[int, float]
 
 
-__all__ = ['tic', 'toc', 'GridMap', 'PriorityQueuePro', 'ListQueue', 'SetQueue', 'Node']
+__all__ = ['tic', 'toc', 'limit_angle', 'GridMap', 'PriorityQueuePro', 'ListQueue', 'SetQueue', 'Node']
 
 
 
@@ -323,6 +323,20 @@ def toc(name='', *, CN=True, digit=6):
         print('%s历时 %f 秒。\n' % (name, round(time.time() - global_tic_time.pop(), digit)))
     else:
         print('%sElapsed time is %f seconds.\n' % (name, round(time.time() - global_tic_time.pop(), digit)))
+
+
+
+
+# 角度归一化
+def limit_angle(x, mode=1):
+    """ 
+    mode1 : (-inf, inf) -> (-π, π] 
+    mode2 : (-inf, inf) -> [0, 2π)
+    """
+    x = x - x//(2*math.pi) * 2*math.pi # any -> [0, 2π)
+    if mode == 1 and x > math.pi:
+        return x - 2*math.pi           # [0, 2π) -> (-π, π]
+    return x
 
 
 
