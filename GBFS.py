@@ -195,20 +195,14 @@ class GBFS:
             # 结束迭代
             if curr == self.end:
                 break
-        print("路径节点搜索完成\n")
+        print("路径搜索完成\n")
         toc()
     
         # 节点组合成路径
-        tic()
-        while curr != self.start: # curr开始为end
-            for last in self.close_set:
-                if curr.parent == last:             # 如果当前节点是上个节点的子节点
-                    self.path_list.append(curr)     # 将当前节点加入路径
-                    self.close_set.remove(curr)     # 弹出当前节点, 避免重复遍历
-                    curr = last                     # 更新当前节点
-                    break
-        print("路径节点整合完成\n")
-        toc()
+        while curr.parent is not None:
+            self.path_list.append(curr)
+            curr = curr.parent
+        self.path_list.reverse()
 
         # 需要重置
         self.__reset_flag = True
