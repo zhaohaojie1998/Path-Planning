@@ -29,7 +29,7 @@ class Node:
 
     x: int
     y: int
-    cost: Number = 0      # 父节点到节点的代价
+    cost: Number = 0      # F代价
     parent: "Node" = None # 父节点指针
 
     def __sub__(self, other) -> int:
@@ -293,8 +293,8 @@ class GridMap:
         map_ = map_[::-1] # 画出来的鸡哥是反的, 需要转过来
         ax.imshow(map_, extent=[0, self.width, 0, self.high]) # extent[x_min, x_max, y_min, y_max]
         ax.plot(x, y, c = 'r', label='path', linewidth=2)
-        ax.scatter(x[-1], y[-1], c='c', marker='o', label='start', s=40, linewidth=2)
-        ax.scatter(x[0], y[0], c='c', marker='x', label='end', s=40, linewidth=2)
+        ax.scatter(x[0], y[0], c='c', marker='o', label='start', s=40, linewidth=2)
+        ax.scatter(x[-1], y[-1], c='c', marker='x', label='end', s=40, linewidth=2)
         ax.invert_yaxis() # 反转y轴
         ax.legend().set_draggable(True)
         plt.show()
