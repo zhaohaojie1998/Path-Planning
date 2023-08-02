@@ -6,7 +6,6 @@ Created on Thu Mar 30 16:45:58 2023
 """
 
 # Hybrid A*算法 
-from typing import Union
 import math
 import numpy as np
 from dataclasses import dataclass
@@ -18,10 +17,10 @@ from common import SetQueue, GridMap, tic, toc, limit_angle
 
     
 # 地图读取
-IMAGE_PATH = 'image.jpg' # 原图路径
-THRESH = 172             # 图片二值化阈值, 大于阈值的部分被置为255, 小于部分被置为0
-MAP_HIGHT = 70          # 地图高度 (1)
-MAP_WIDTH = 120          # 地图宽度 (1)
+IMAGE_PATH = 'image1.jpg' # 原图路径
+THRESH = 172              # 图片二值化阈值, 大于阈值的部分被置为255, 小于部分被置为0
+MAP_HIGHT = 70            # 地图高度 (1)
+MAP_WIDTH = 120           # 地图宽度 (1)
 
 MAP = GridMap(IMAGE_PATH, THRESH, MAP_HIGHT, MAP_WIDTH) # 栅格地图对象
 
@@ -30,9 +29,9 @@ MAP_NORM = 1.0          # 地图一个像素表示多少米 (m/1) #! BUG MAP_NOR
 YAW_NORM = math.pi / 6  # 每多少rad算同一个角度 (rad/1)
 
 # 起点终点设置
-START = [10.0, 35.0, 0.0] # 起点 (x, y, yaw), y轴向下为正, yaw顺时针为正
-END = [110.0, 35.0, 0.0]   # 终点 (x, y, yaw), y轴向下为正, yaw顺时针为正
-ERR = 0.5                   # 与终点距离小于 ERR 米时停止搜索
+START = [5.0, 35.0, -math.pi/6] # 起点 (x, y, yaw), y轴向下为正, yaw顺时针为正
+END = [115.0, 60.0, math.pi/2]  # 终点 (x, y, yaw), y轴向下为正, yaw顺时针为正
+ERR = 0.5                       # 与终点距离小于 ERR 米时停止搜索
 
 # 车辆模型
 CAR_LENGTH = 4.5                   # 车辆长度 (m)
@@ -74,7 +73,7 @@ class HybridNode:
 
     def __post_init__(self):
         # 坐标和方向栅格化
-        self.x_idx = round(self.x / MAP_NORM)
+        self.x_idx = round(self.x / MAP_NORM) # int向下取整, round四舍五入
         self.y_idx = round(self.y / MAP_NORM)
         self.yaw_idx = round(self.yaw / YAW_NORM)
         if self.cost is None:
@@ -136,9 +135,13 @@ class HybridNode:
         y3 = self.y + LS + WC
         x4 = self.x - LC - WS
         y4 = self.y + LS - WC
-        # 检查边界框所覆盖的栅格是否包含障碍物
-        for i in range(int(min([x1, x2, x3, x4])/MAP_NORM), round(int(max([x1, x2, x3, x4]))/MAP_NORM)):
-            for j in range(int(min([y1, y2, y3, y4])/MAP_NORM), round(int(max([y1, y2, y3, y4]))/MAP_NORM)):
+        # 检查边界框所覆盖的栅格是否包含障碍物和出界
+        for i in range(int(min([x1, x2, x3, x4])/MAP_NORM), int(max([x1, x2, x3, x4])/MAP_NORM)):
+            for j in range(int(min([y1, y2, y3, y4])/MAP_NORM), int(max([y1, y2, y3, y4])/MAP_NORM)):
+                if i < 0 or i >= map_array.shape[1]:
+                    return True
+                if j < 0 or j >= map_array.shape[0]:
+                    return True
                 if map_array[j, i] == 0: # h*w维, y是第一个索引, 0表示障碍物
                     return True
         return False
@@ -280,11 +283,11 @@ class HybridAStar:
         toc()
 
         # 节点组合成路径
-        self.path_list.append(curr)
         while curr.parent is not None:
-            curr = curr.parent
             self.path_list.append(curr)
-
+            curr = curr.parent
+        self.path_list.reverse()
+            
         # 需要重置
         self.__reset_flag = True
 
